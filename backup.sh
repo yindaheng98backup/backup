@@ -42,6 +42,7 @@ for branch in ${branch_list_bkup[@]}; do
     echo "$branch" >&2
 done
 
+changed=''
 #1. 比对主仓库和备份仓库的branch结构
 for branch in ${!branch_dict_main[@]}; do
     echo "检查'$branch'分支" >&2
@@ -51,7 +52,7 @@ for branch in ${!branch_dict_main[@]}; do
     if [[ ! " ${branch_list_bkup[@]} " =~ " $branch " ]]; then
         #2. 如果主仓库中有备份仓库中没有的branch，则创建branch
         echo "备份仓库中缺少'$branch'分支，需要添加" >&2
-        echo 1
+        changed='1'
         git checkout $branch_in_main >&2
         git checkout -b $branch >&2
         continue
@@ -76,7 +77,7 @@ for branch in ${!branch_dict_main[@]}; do
         echo "主仓库中的'$branch'分支是备份仓库的 fast forward，可以直接覆盖" >&2
     fi
     echo "用主仓库的'$branch'分支覆盖备份仓库的'$branch'分支" >&2
-    echo 1
+    changed='1'
     git checkout $branch_in_main >&2  #切换到主仓库的$branch分支
     git branch -D $branch_in_bkup >&2 #删除备份仓库的$branch分支
     git checkout -b $branch >&2       #将主仓库的$branch分支变成备份仓库的$branch分支
@@ -84,3 +85,4 @@ done
 git branch >&2
 cd $PRE_DIR
 git --git-dir="$BKUP_REPO/.git" remote remove main >&2 #删除用完了的远程仓库
+echo $changed
