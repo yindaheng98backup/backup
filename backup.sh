@@ -60,21 +60,21 @@ for branch in ${!branch_dict_main[@]}; do
 
     #3. 如果主仓库中有与备份仓库中同名的branch，则进一步比对
     echo "备份仓库中有'$branch'分支" >&2
-    if [ -z "$(git diff $branch_in_main $branch_in_bkup)" ]; then
+    if [ -z "$(git diff $branch_in_main $branch_in_bkup --stat)" ]; then
         #3-1. 如果同名的branch中的commit记录完全一致，则不进行操作
         echo "主仓库和备份仓库中的'$branch'分支没有diff，无需修改" >&2
         continue
     fi
-    if [ -z "$(git diff $branch_in_bkup...$branch_in_main)" ]; then
-        #3-2. 如果同名的branch中的commit记录不是上述两种情况，则将备份仓库中的branch重命名为“时间+branch名”，而用主仓库中的branch覆盖原branch
+    if [ -z "$(git diff $branch_in_main...$branch_in_bkup --stat)" ]; then
+        #3-2. 如果同名的branch中备份仓库的commit记录是主仓库的commit记录的子集，则直接用主仓库中的branch覆盖之
+        echo "主仓库中的'$branch'分支是备份仓库的 fast forward，可以直接覆盖" >&2
+    else
+        #3-3. 如果同名的branch中的commit记录不是上述两种情况，则将备份仓库中的branch重命名为“时间+branch名”，而用主仓库中的branch覆盖原branch
         echo "主仓库中的'$branch'分支不是备份仓库的 fast forward，需要先将备份仓库中的'$branch'分支重命名" >&2
         branch_rename=$branch"."$(date '+%Y%m%d%H%M%S')
         echo "备份仓库的'$branch'分支重命名为'$branch_rename'" >&2
         git checkout $branch_in_bkup >&2   #切换到备份仓库的$branch分支
         git checkout -b $branch_rename >&2 #重命名备份仓库的$branch分支
-    else
-        #3-3. 如果同名的branch中主仓库的commit记录只比备份仓库的commit记录多最后几个，前面都是完全一直，则直接用主仓库中的branch覆盖之
-        echo "主仓库中的'$branch'分支是备份仓库的 fast forward，可以直接覆盖" >&2
     fi
     echo "用主仓库的'$branch'分支覆盖备份仓库的'$branch'分支" >&2
     changed='1'
